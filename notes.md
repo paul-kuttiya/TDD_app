@@ -1,12 +1,11 @@
 # TDD with Ruby on rails  
 
 ### Table of contents  
-* [Project Inilization](#project-Inilization)
-* [BDD test with Feature spec](#BDD-test-with-feature-spec)
-* [First Feature spec: Happy Path](#first-feature-spec:-happy-path)
+* [Project initialization](#project-initialization)
+* [Acceptance Tests](#acceptance-tests)
+  * [First Feature spec](#first-feature-spec)
 
-
-### Project Inilizaiton  
+## Project Initialization  
 * Start project without unit test  
 ~> `rails _4.2_ new -T app_name`  
 
@@ -42,12 +41,17 @@ end
 
 * require `rails_helper` in `.rspec` file  
 
-### BDD test with Feature spec  
+## Acceptance Tests  
+* Use to emulate client's interface  
+~> test from outside(interface) to inside(db)  
+
 * feature test workflow setup  
 ~> create a file in `spec/features/home_page_spec.rb`  
+~> run test with spring by `bin/rspec` or `rspec`   
 ~> `feature` is the same as `describe`  
 ~> `scenario` is the same as `it`  
 ~> Check Capybara built-in methods in notes cheat_sheets  
+* Example: test home page  
 ```ruby
 feature 'home page' do
   scenario 'welcome message' do
@@ -77,4 +81,22 @@ end
 
 ~> implment content in view  
 
-### First Feature spec: Happy Path  
+### First Feature spec  
+#### Happy path  
+* create `spec/features/create_achievement_spec.rb`  
+~> visit home page  
+~> click on `New Acheivement`  
+~> fill form text field label `title` with `Read a book`  
+~> fill in text area label `Description` with `Excellent read`  
+~> select `Public` box from label `Privacy`  
+~> check `Featured achievement` checkbox  
+~> attach_file `Cover image`
+~> click `Create Achievement` button  
+~> expect to see `Achievement has been created` on page  
+~> expect `Achievement` model last title to equal `Read a book`  
+```ruby
+
+```
+
+* Create functionality to satisfy the test  
+~> 
