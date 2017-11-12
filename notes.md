@@ -90,13 +90,52 @@ end
 ~> fill in text area label `Description` with `Excellent read`  
 ~> select `Public` box from label `Privacy`  
 ~> check `Featured achievement` checkbox  
-~> attach_file `Cover image`
+~> attach_file `Cover image`  
 ~> click `Create Achievement` button  
 ~> expect to see `Achievement has been created` on page  
 ~> expect `Achievement` model last title to equal `Read a book`  
 ```ruby
+feature 'create new achievement' do
+  scenario 'create new achievement with valid data' do
+    # visit('link')
+    visit('/')
 
+    # click_on('botton')
+    click_on('New Achievement')
+
+    # fill_in('form_label', with: "content")    
+    fill_in('Title', with: 'Read a book')
+    fill_in('Description', with: 'Excellent read')    
+
+    # select('field', from "select_label")
+    select('Public', from: 'Privacy')  
+
+    # check('checkbox')  
+    check('Featured achievement')
+
+    # attach_file('name', from: "file_path")
+    attach_file('Cover image', from: "#{Rails.root}/spec/fixtures/cover_image.png")
+
+    click_on('Create Achievement')
+
+    # expect(page).to have_content(`html_content`)
+    expect(page).to have_content('Achievement has been created')
+
+    # expect(something).to eq something
+    expect(Acheivement.last.title).to eq 'Read a book'
+  end
+end
 ```
 
 * Create functionality to satisfy the test  
-~> 
+~> create nav for view, then include link to `New Achievement`  
+~> define `achievements` route  
+```ruby
+#route
+resources :achievements, only: [:new, :create]
+```
+~> create `achievements` controller, and `new` action  
+~> create `achievements new` view, and add form for `@achievement`    
+~> create `@achievement` instance in controller's new action, `Achievement` model to match with test form  
+~> install `gem 'simple_form'` then run command `rails g simple_form:install --bootstrap`  
+ 

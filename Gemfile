@@ -9,6 +9,7 @@ gem 'uglifier', '>= 1.3.0'
 gem 'coffee-rails', '~> 4.1.0'
 gem 'haml'
 gem 'bootstrap-sass'
+gem 'simple_form', '~> 3.2', '>= 3.2.1'
 
 gem 'jquery-rails'
 gem 'turbolinks'

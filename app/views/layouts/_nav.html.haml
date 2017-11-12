@@ -1,0 +1,31 @@
+%nav.navbar.navbar-default
+  .container-fluid
+    .navbar-header
+      %button.navbar-toggle.collapsed{"aria-expanded" => "false", "data-target" => "#bs-example-navbar-collapse-1", "data-toggle" => "collapse", :type => "button"}
+        %span.sr-only Toggle navigation
+        %span.icon-bar
+        %span.icon-bar
+        %span.icon-bar
+      %a.navbar-brand{:href => "/"} TDD app
+    #bs-example-navbar-collapse-1.collapse.navbar-collapse
+      %ul.nav.navbar-nav
+        %li
+          = link_to 'New Achievement', new_achievement_path
+
+      -# %ul.nav.navbar-nav.navbar-right
+      -#   %li
+      -#     %a{:href => "#"} Link
+      -#   %li.dropdown
+      -#     %a.dropdown-toggle{"aria-expanded" => "false", "aria-haspopup" => "true", "data-toggle" => "dropdown", :href => "#", :role => "button"}
+      -#       Dropdown
+      -#       %span.caret
+      -#     %ul.dropdown-menu
+      -#       %li
+      -#         %a{:href => "#"} Action
+      -#       %li
+      -#         %a{:href => "#"} Another action
+      -#       %li
+      -#         %a{:href => "#"} Something else here
+      -#       %li.divider{:role => "separator"}
+      -#       %li
+      -#         %a{:href => "#"} Separated link
