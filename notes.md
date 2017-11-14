@@ -6,8 +6,10 @@
   * [First Feature spec](#first-feature-spec)  
     * [Happy Path](#happy-path)  
     * [Sad Path](#sad-path)  
-    * [Refactor feature tests](#refactor-feature-tests)
-    
+    * [Refactor feature tests](#refactor-feature-tests)  
+    * [Factory girl](#factory-girl)  
+    * [Show page feature spec](#show-page-feature-spec)  
+    * [Cucumber](#cucumber)  
 
 ## Project Initialization  
 * Start project without unit test  
@@ -269,3 +271,79 @@ feature 'create new achievement' do
   end
 end
 ```  
+#### Factory girl
+* generate fake model for seed/test, can be combine with `Faker`    
+```ruby
+# spec/factories/achievement.rb  
+FactoryGirl.define do
+  # define default values
+  factory :achievement do
+    # return sequence num for unique title
+    # use Faker(optional) 
+    sequence(:title) { |n| "Achievement #{n}" }
+    description "description"
+    privacy Achievement.privacies[:private_access]
+    featured false
+    cover_image "some_file.png"
+
+    # sub factory, inherit from parent with the exception of defined value
+    factory :public_achievement do
+      privacy Achievement.privacies[:public_access]
+    end
+  end
+end
+```
+
+* create multiple objects with factory girl  
+```ruby
+FactoryGirl.create_list(:achievement, 3)
+```
+
+#### Show page feature spec
+* create feature spec `achievement_page_spec`  
+```ruby
+feature 'achievement page' do
+  scenario 'achievement public page' do
+    achievement = FactoryGirl.create(:achievement, title: 'Public achievement')
+
+    visit("/achievements/#{achievement.id}")
+    expect(page).to have_content('Public achievement')
+  end
+end
+```
+
+* implement route for show page
+
+* implment show action and show view   
+```ruby
+def show
+  @achievement = Achievement.find(params[:id])
+end
+```
+
+* implement markdown in `achievements_controller`  
+```ruby
+def show
+  #...
+  @description = Redcarpet::Markdown.new(Redcarpet::Render::HTML).render(@achievement.description)
+end
+``` 
+
+* implement another scenario, use `redcarpet` for rendering markdown  
+
+* detect working markdown by `.have_css('tag', text: "text")` instead of page content  
+```ruby
+feature 'achievement page' do
+  #...
+
+  scenario 'render markdown description' do
+    achievement = FactoryGirl.create(:achievement, description: "That *was* hard")
+
+    visit("/achievements/#{achievement.id}")
+    expect(page).to have_css('em', text: "was")
+  end
+end
+```
+
+#### Cucumber  
+* 

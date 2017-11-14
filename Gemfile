@@ -17,6 +17,8 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 gem 'puma'
 gem 'bootstrap-sass'
 gem 'simple_form'
+
+# use for render markdown as form input
 gem 'redcarpet'
 
 group :development, :test do
@@ -26,6 +28,8 @@ group :development, :test do
   gem 'spring-commands-rspec'
   gem 'spring-commands-cucumber'
   gem 'rspec-rails', '~> 3.5'
+
+  # fabricate tests and seed object
   gem 'factory_girl_rails'
   gem 'pry'
 end
