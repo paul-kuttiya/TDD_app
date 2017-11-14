@@ -24,6 +24,7 @@ gem 'redcarpet'
 group :development, :test do
   gem 'byebug'
   gem 'web-console', '~> 2.0'
+  # keep rails running without reboot
   gem 'spring'
   gem 'spring-commands-rspec'
   gem 'spring-commands-cucumber'

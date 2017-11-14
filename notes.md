@@ -31,6 +31,7 @@ end
 
 group :test do
   gem 'capybara'
+  gem 'database_cleaner'
 end
 ```
 
@@ -346,4 +347,71 @@ end
 ```
 
 #### Cucumber  
-* 
+* add essential gems  
+```ruby
+group :development, :test do
+  gem 'spring-commands-cucumber'
+end
+
+group :test do
+  gem 'cucumber-rails', require: false
+  gem 'database_cleaner'
+end
+```
+
+* run spring command `bundle exec spring binstub --all`  
+
+* generate cucumber with `rails g cucumber:install`  
+
+* create cumcumber spec `rails_root/features/achievement_page.feature`, then implement the feature  
+```cucumber
+Feature: Achievement_page
+
+  In order to read others achievements
+  As a guest user
+  I want to see public achievement
+
+  Scenario: guest user sees public achievement
+    Given I am a guest user
+    And there is a public achievement
+    When I go to the achievement's page
+    Then I must see achievement's content
+```
+
+* run `cucumber` and paste create cucumber steps in  `rails_root/features/step_definitions/achievements_steps.rb`, then paste the warning in the file  
+```ruby
+Given(/^I am a guest user$/) do
+  pending # express the regexp above with the code you wish you had
+end
+
+Given(/^there is a public achievement$/) do
+  pending # express the regexp above with the code you wish you had
+end
+
+When(/^I go to the achievement's page$/) do
+  pending # express the regexp above with the code you wish you had
+end
+
+Then(/^I must see achievement's content$/) do
+  pending # express the regexp above with the code you wish you had
+end
+```
+
+* implement in the steps  
+```ruby
+Given(/^I am a guest user$/) do
+end
+
+Given(/^there is a public achievement$/) do
+  # use instance variable to share between steps
+  @achievement = FactoryGirl.create(:public_achievement, title: "Public achievement")
+end
+
+When(/^I go to the achievement's page$/) do
+  visit(achievement_path(@achievement.id))
+end
+
+Then(/^I must see achievement's content$/) do
+  expect(page).to have_content("Public achievement")
+end
+```
