@@ -10,7 +10,12 @@
     * [Factory girl](#factory-girl)  
     * [Show page feature spec](#show-page-feature-spec)  
     * [Cucumber](#cucumber)  
-
+* [Controller tests](#controller-tests)  
+  * [Test new and show](#test-new-and-show)  
+  * [Test create](#test-create)  
+  * [Test index and edit](#test-index-and-edit)   
+  * [Test update and destroy](#test-update-and-destroy)    
+   
 ## Project Initialization  
 * Start project without unit test  
 ~> `rails _4.2_ new -T app_name`  
@@ -50,14 +55,15 @@ end
 
 ## Acceptance Tests  
 * Use to emulate client's interface  
-~> test from outside(interface) to inside(db)  
+  * test from outside(interface) to inside(db)  
 
 * feature test workflow setup  
-~> create a file in `spec/features/home_page_spec.rb`  
-~> run test with spring by `bin/rspec` or `rspec`   
-~> `feature` is the same as `describe`  
-~> `scenario` is the same as `it`  
-~> Check Capybara built-in methods in notes cheat_sheets  
+  * create a file in `spec/features/home_page_spec.rb`  
+  * run test with spring by `bin/rspec` or `rspec`   
+  * `feature` is the same as `describe`  
+  * `scenario` is the same as `it`  
+  * Check Capybara built-in methods in notes cheat_sheets  
+
 * Example: test home page  
 ```ruby
 feature 'home page' do
@@ -68,13 +74,13 @@ feature 'home page' do
 end
 ```
 
-~> run test will get `routing error`  
+* then run test will get `routing error`  
 ```ruby
 # route.rb
 root to: 'welcome#index'
 ```
 
-~> run test will get `controller error`  
+* then run test will get `controller error`  
 ```ruby
 # welcome_controller.rb
 class WelcomeController < ApplicationController
@@ -83,10 +89,11 @@ class WelcomeController < ApplicationController
 end
 ```
 
-~> run test will get `missing template`, create in `app/views/welcome/index.html.haml`  
-~> run test will get `expected to find content ...`  
+* then run test will get `missing template`, create in `app/views/welcome/index.html.haml`  
 
-~> implment content in view  
+* then test will get `expected to find content ...`  
+
+* after that implment content in view  
 
 ### First Feature spec  
 #### Happy path  
@@ -155,10 +162,14 @@ end
 ```ruby
 ```
 * create `privacies` method in `Achievement` model for select box  
+
+> enum will create a rails query by string but store in interger, will also create methods from query string to return associated array  
+
 ```ruby
 class Achievement < ActiveRecord::Base
   # create model method privacies, which can query string in array and store number in db
   # Achievement.privacies == {"public_access"=>0, "private_access"=>1, "friends_access"=>2}
+  # Achievement.public_access == [#array_of_public_access in db]
   enum privacy: [:public_access, :private_access, :friends_access]
 end
 ```
@@ -415,3 +426,128 @@ Then(/^I must see achievement's content$/) do
   expect(page).to have_content("Public achievement")
 end
 ```
+
+## Controller Tests  
+* controller use for handle user requests, handle model and create response  
+
+* treat controller action as black box and expect result from it  
+
+### Test new and show  
+```ruby
+describe AchievementsController do
+  describe "GET new" do
+    it "renders :new template" do
+      get :new
+      expect(response).to render_template(:new)
+    end
+
+    it "assigns new Achievement to @achievement" do
+      get :new
+      expect(assigns[:achievement]).to be_a_new(Achievement)
+    end
+  end
+
+  describe "GET show" do
+    let(:achievement) { FactoryGirl.create(:achievement) }
+
+    it "renders :show template" do
+      get :show, { id: achievement.id }
+      expect(response).to render_template(:show)
+    end
+
+    it "assigns reqested achievement to @achievement" do
+      get :show, { id: achievement.id }
+      expect(assigns[:achievement]).to eq achievement
+    end
+  end
+end
+```
+
+### test create  
+```ruby
+describe "POST create" do
+  context "valid input" do
+    let(:achievement) { FactoryGirl.attributes_for(:public_achievement) }
+
+    before do
+      post :create, achievement: achievement
+    end
+    
+    it "redirects to achievement#show" do
+      expect(response).to redirect_to(assigns[:achievement])
+    end
+
+    it "creates new achievement in database" do
+      expect(Achievement.count).to eq 1
+    end
+  end
+
+  context "invalid input" do
+    let(:achievement) { FactoryGirl.attributes_for(:public_achievement, title: '') }
+    
+    before do
+      post :create, achievement: achievement
+    end
+
+    it "renders new" do
+      expect(response).to render_template :new
+    end
+
+    it "does not create new achievement in the database" do
+      expect(Achievement.count).to eq 0
+    end
+  end
+end
+```
+
+### Test index and edit  
+* implement edit and index test then integrate in the controller  
+
+* modify route to have edit and index for `achievements_controller` then create view `index` and `edit`  
+
+```ruby
+# rspec
+describe "GET index" do
+  it "renders :index template" do
+    get :index
+    expect(response).to render_template :index
+  end
+  
+  it "assigns only public achievements to view" do
+    public_achievement = FactoryGirl.create(:public_achievement)
+    private_achievement = FactoryGirl.create(:private_achievement)
+    
+    get :index
+    expect(assigns[:achievements]).to match_array([public_achievement])
+  end
+end
+
+describe "GET edit" do
+  let(:achievement) { FactoryGirl.create(:public_achievement) }
+
+  before do
+    get :edit, id: achievement
+  end
+
+  it "renders :edit template" do
+    expect(response).to render_template :edit
+  end
+  
+  it "assigns the achievement values to template" do
+    expect(assigns[:achievement]).to eq achievement
+  end
+end
+```
+
+```ruby
+# controller
+def index
+  @achievements = Achievement.public_access
+end
+
+def edit
+  @achievement = Achievement.find(params[:id])
+end
+```
+
+### Test update and destroy  
