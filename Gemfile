@@ -21,6 +21,9 @@ gem 'simple_form'
 # use for render markdown as form input
 gem 'redcarpet'
 
+# user auth
+gem 'devise'
+
 group :development, :test do
   gem 'byebug'
   gem 'web-console', '~> 2.0'

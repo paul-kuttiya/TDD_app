@@ -15,7 +15,10 @@
   * [Test create](#test-create)  
   * [Test index and edit](#test-index-and-edit)   
   * [Test update and destroy](#test-update-and-destroy)    
+  * [Install devise](#install-devise)  
    
+> run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
+
 ## Project Initialization  
 * Start project without unit test  
 ~> `rails _4.2_ new -T app_name`  
@@ -551,3 +554,147 @@ end
 ```
 
 ### Test update and destroy  
+* implement test for update  
+```ruby
+describe "PUT update" do
+  # FactoryGirl create object in database
+  let(:achievement) { FactoryGirl.create(:public_achievement) }
+
+  context "valid input" do
+    let(:valid_achievement) { FactoryGirl.attributes_for(:public_achievement, title: "New title") }      
+
+    before do
+      put :update, id: achievement, achievement: valid_achievement
+    end
+
+    it "redirects to achievements#show" do
+      expect(response).to redirect_to achievement
+    end
+
+    it "updates data in the database" do
+      # reload instance from database after update
+      achievement.reload
+      expect(achievement.title).to eq "New title"
+    end
+  end
+
+  # context for invalid input
+
+end
+```
+
+* implement controller and view accordingly  
+```ruby
+def update
+  @achievement = Achievement.find(params[:id])
+
+  if @achievement.update(achievement_params)
+    redirect_to @achievement
+  end
+end
+```
+
+* test for update invalid input  
+```ruby
+describe "PUT update" do
+  let(:achievement) { FactoryGirl.create(:public_achievement) }
+
+  # context valid input
+
+  context "invalid input" do
+    let(:invalid_achievement) { FactoryGirl.attributes_for(:public_achievement, title: "") }
+
+    before do
+      put :update, id: achievement, achievement: invalid_achievement
+    end
+
+    it "renders an edit template" do
+      expect(response).to render_template :edit
+    end
+
+    it "does not update database" do
+      achievement.reload
+      expect(achievement).not_to be ""
+    end
+  end
+end
+```
+
+* implement controller and view accordingly  
+```ruby
+def update
+  @achievement = Achievement.find(params[:id])
+
+  if @achievement.update(achievement_params)
+    redirect_to @achievement
+  else
+    render :edit
+  end
+end
+```
+
+* test for destroy  
+```ruby
+describe "DELETE destroy" do
+  let(:achievement) { FactoryGirl.create(:public_achievement) }
+  
+  before do
+    delete :destroy, id: achievement
+    expect(Achievement.count).to eq 0
+  end
+
+  it "redirects to achievement#index" do
+    expect(response).to redirect_to achievements_path
+  end
+
+  it "destroys achievement from database" do
+    expect(Achievement.exists?(achievement.id)).to be false
+  end
+end
+```
+
+* implement action  
+```ruby
+def destroy
+  if Achievement.destroy(params[:id])
+    redirect_to achievements_path
+  end
+end
+```
+
+### Install devise
+* include gemfile `gem devise`  
+
+* run `rails g devise:install`  
+
+* config mailer in `environments/developement.rb`, `test.rb` and `production.rb`   
+```ruby
+# development, and test
+# In production, :host should be set to the actual host of your application.
+config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
+```
+
+* generate user with devise `rails g devise model_name`; eg: `rails g devise user`, then run `rake db:migrate`  
+
+* create default values for `user` FactoryGirl  
+```ruby
+FactoryGirl.define do
+  factory :user do
+    # increment for every Factory instance
+    sequence(:email) { |n| "email#{n}@email.com" }
+    password "secret"
+  end
+end
+```
+
+* Devise provide method for testing controller, config in `rails_helper.rb`
+```ruby
+#...
+require 'rspec/rails'
+require 'devise'
+
+RSpec.configure do |config|
+  #...
+  config.include Devise::TestHelpers, type: :controller
+end
+```
