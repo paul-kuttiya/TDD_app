@@ -101,16 +101,16 @@ end
 ### First Feature spec  
 #### Happy path  
 * create `spec/features/create_achievement_spec.rb`  
-~> visit home page  
-~> click on `New Acheivement`  
-~> fill form text field label `title` with `Read a book`  
-~> fill in text area label `Description` with `Excellent read`  
-~> select `Public` box from label `Privacy`  
-~> check `Featured achievement` checkbox  
-~> attach_file `Cover image`  
-~> click `Create Achievement` button  
-~> expect to see `Achievement has been created` on page  
-~> expect `Achievement` model last title to equal `Read a book`  
+  * visit home page  
+  * click on `New Acheivement`  
+  * fill form text field label `title` with `Read a book`  
+  * fill in text area label `Description` with `Excellent read`  
+  * select `Public` box from label `Privacy`  
+  * check `Featured achievement` checkbox  
+  * attach_file `Cover image`  
+  * click `Create Achievement` button  
+  * expect to see `Achievement has been created` on page  
+  * expect `Achievement` model last title to equal `Read a book`  
 ```ruby
 feature 'create new achievement' do
   scenario 'create new achievement with valid data' do
@@ -144,7 +144,7 @@ feature 'create new achievement' do
 end
 ```
 
-##### Create functionality to satisfy the test
+### Create functionality to satisfy the test
 * create nav for view, then include link to `New Achievement`  
 
 * define `achievements` route
@@ -163,6 +163,13 @@ end
 
 * create inputs for form
 ```ruby
+= simple_form_for @achievement do |f|
+  = f.input :title
+  = f.input :description
+  = f.input :privacy, collection: Achievement.privacies.map { |k, v| [k.split('_').first.capitalize, k] }
+  = f.input :featured, label: 'Featured achievement'
+  = f.input :cover_image, as: :file
+  = f.submit "Create Achievement", class: "btn btn-danger"
 ```
 * create `privacies` method in `Achievement` model for select box  
 
