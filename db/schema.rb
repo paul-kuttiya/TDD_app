@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20171115061445) do
+ActiveRecord::Schema.define(version: 20171116005905) do
 
   create_table "achievements", force: :cascade do |t|
     t.text    "title"
@@ -19,7 +19,10 @@ ActiveRecord::Schema.define(version: 20171115061445) do
     t.integer "privacy"
     t.boolean "featured"
     t.string  "cover_image"
+    t.integer "user_id"
   end
+
+  add_index "achievements", ["user_id"], name: "index_achievements_on_user_id"
 
   create_table "users", force: :cascade do |t|
     t.string   "email",                  default: "", null: false

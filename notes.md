@@ -16,6 +16,9 @@
   * [Test index and edit](#test-index-and-edit)   
   * [Test update and destroy](#test-update-and-destroy)    
   * [Install devise](#install-devise)  
+  * [Testing authenticaion](#testing-authentication)  
+  * [Testing authorization](#testing-authorization)  
+
    
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
 
@@ -272,7 +275,15 @@ class NewAchievementForm
 end
 ```
 
-* require_relative in `create_achievement_spec`, and refactor the spec by create instance in let block the use the refactor method for test    
+* require_relative in `create_achievement_spec`, and refactor the spec by create instance in let block the use the refactor method for test   
+
+> alternatively, without `require_relative` all the time, tell `rails_helper.rb` to load all files in `spec/support/**/*.rb` before the test run, move support files to `spec/support/features/file.rb` 
+
+```ruby
+# rails_helper
+Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
+```
+
 ```ruby
 require_relative '../support/new_achievement_form.rb'
 
@@ -689,7 +700,7 @@ FactoryGirl.define do
   factory :user do
     # increment for every Factory instance
     sequence(:email) { |n| "email#{n}@email.com" }
-    password "secret"
+    password "secretpassword"
   end
 end
 ```
@@ -703,5 +714,399 @@ require 'devise'
 RSpec.configure do |config|
   #...
   config.include Devise::TestHelpers, type: :controller
+end
+```
+
+### Testing authenticaion  
+* Guest has access for index and show 
+
+* user has access for index, show, new and create
+
+* owner has access for index, show, edit, update, destroy  
+
+### test for `guest user`  
+* move get `index` and `show` spec in `guest user` test scope  
+
+* add test for request to unpermited action  
+```ruby
+describe "guest user" do
+  describe "GET index" do
+    it "renders :index template" do
+      get :index
+      expect(response).to render_template :index
+    end
+    
+    it "assigns only public achievements to view" do
+      public_achievement = FactoryGirl.create(:public_achievement)
+      private_achievement = FactoryGirl.create(:private_achievement)
+      
+      get :index
+      expect(assigns[:achievements]).to match_array([public_achievement])
+    end
+  end
+
+  describe "GET new" do
+    it "redirects to user#new page" do
+      get :new
+      expect(response).to redirect_to new_user_session_path
+    end
+  end
+
+  describe "POST create" do
+    it "redirects to user#new page" do
+      post :create, achievement: FactoryGirl.attributes_for(:public_achievement)
+      expect(response).to redirect_to new_user_session_path
+    end
+  end
+
+  describe "GET edit" do
+    it "redirects to user#new page" do
+      post :create, id: FactoryGirl.create(:public_achievement)
+      expect(response).to redirect_to new_user_session_path
+    end
+  end
+
+  describe "PUT update" do
+    it "redirects to user#new page" do
+      post :update, id: FactoryGirl.create(:public_achievement), achievement: FactoryGirl.attributes_for(:public_achievement)
+      expect(response).to redirect_to new_user_session_path
+    end
+  end
+
+  describe "DELETE destroy" do
+    it "redirects to user#new page" do
+      delete :destroy, id: FactoryGirl.create(:public_achievement)
+      expect(response).to redirect_to new_user_session_path
+    end
+  end
+end
+```
+
+```ruby
+class AchievementsController < ApplicationController
+  before_action :authenticate_user!, only: [:new, :create, :edit, :update, :destroy]
+end
+```
+
+* run test only for the new implemented blocked and will pass  
+
+### Testing authorization  
+* implement test for `authorized user` and `owner`; move from index, show, new, create test, use `FactoryGirl.create(:user)` and devise helper `sign_in(:user)` before for authorized user  
+
+* add user is not the owner of achievement context  
+```ruby
+describe "authenticated user" do
+  let(:user) { FactoryGirl.create(:user) }
+
+  before do
+    sign_in(user)
+  end
+  
+  describe "GET index" do
+    it "renders :index template" do
+      get :index
+      expect(response).to render_template :index
+    end
+    
+    it "assigns only public achievements to view" do
+      public_achievement = FactoryGirl.create(:public_achievement)
+      private_achievement = FactoryGirl.create(:private_achievement)
+      
+      get :index
+      expect(assigns[:achievements]).to match_array([public_achievement])
+    end
+  end
+
+  describe "GET show" do
+    let(:achievement) { FactoryGirl.create(:achievement) }
+
+    it "renders :show template" do
+      get :show, { id: achievement.id }
+      expect(response).to render_template(:show)
+    end
+
+    it "assigns reqested achievement to @achievement" do
+      get :show, { id: achievement.id }
+      expect(assigns[:achievement]).to eq achievement
+    end
+  end
+
+  describe "GET new" do
+    it "renders :new template" do
+      get :new
+      expect(response).to render_template(:new)
+    end
+
+    it "assigns new Achievement to @achievement" do
+      get :new
+      expect(assigns[:achievement]).to be_a_new(Achievement)
+    end
+  end
+
+  describe "POST create" do
+    context "valid input" do
+      let(:achievement) { FactoryGirl.attributes_for(:public_achievement) }
+
+      before do
+        post :create, achievement: achievement
+      end
+      
+      it "redirects to achievement#show" do
+        expect(response).to redirect_to(assigns[:achievement])
+      end
+
+      it "creates new achievement in database" do
+        expect(Achievement.count).to eq 1
+      end
+    end
+
+    context "invalid input" do
+      let(:achievement) { FactoryGirl.attributes_for(:public_achievement, title: '') }
+      
+      before do
+        post :create, achievement: achievement
+      end
+
+      it "renders new" do
+        expect(response).to render_template :new
+      end
+
+      it "does not create new achievement in the database" do
+        expect(Achievement.count).to eq 0
+      end
+    end
+  end
+
+  context "user is not the owner of the achievement" do
+    describe "GET edit" do
+      it "redirects to achievements#index" do
+        post :create, id: FactoryGirl.create(:public_achievement)
+        expect(response).to redirect_to achievements_path
+      end
+    end
+
+    describe "PUT update" do
+      it "redirects to achievements#index" do
+        post :update, id: FactoryGirl.create(:public_achievement), achievement: FactoryGirl.attributes_for(:public_achievement)
+        expect(response).to redirect_to achievements_path
+      end
+    end
+
+    describe "DELETE destroy" do
+      it "redirects to achievements#index" do
+        delete :destroy, id: FactoryGirl.create(:public_achievement)
+        expect(response).to redirect_to achievements_path
+      end
+    end
+  end
+
+  context "user is the owner of the achievement" do
+    #...
+  end
+end
+```
+
+* to satisfy the test, create association for `User` and `Achievement` model, create migration with ```rails g migration AddUserToAchievements user:references```; will add `user_id` as a reference to `achievements` table    
+
+* run `rake db:migrate`
+
+* for 1:M relationship; add `belongs_to :user` in `Achievement` model, and `has_many :achievements` in `User` model  
+
+* implement `cancan`, `pundit` gem, or implement in controller manually  
+```ruby
+class AchievementsController < ApplicationController
+  before_action :owners_only, only: [:edit, :update, :destroy]
+
+  #...
+
+  def owners_only
+    @achievement = Achievement.find(params[:id])
+
+    # current_user is a devise method
+    if current_user != @achievement.user
+      redirect_to achievements_path
+    end
+  end
+end
+```
+
+> `owners_only` will run before `edit, update, destroy` action, refactor the code  
+
+* implement `user is the owner of achievement context`, by moving the `edit, update, destroy` test to the context    
+```ruby
+describe "authenticated user" do
+  let(:user) { FactoryGirl.create(:user) }
+
+  before do
+    sign_in(user)
+  end
+
+  context "user is not the owner of the achievement" do
+    #...
+  end
+
+  # predefined achievement associated with user
+  context "user is the owner of the achievement" do
+    # user variable from outer scope
+    let(:achievement) { FactoryGirl.create(:public_achievement, user: user) }
+
+    describe "GET edit" do
+      # remove achievement and user from outer scope
+      before do
+        get :edit, id: achievement
+      end
+
+      it "renders :edit template" do
+        expect(response).to render_template :edit
+      end
+      
+      it "assigns the achievement values to template" do
+        expect(assigns[:achievement]).to eq achievement
+      end
+    end
+
+    describe "PUT update" do
+      context "valid input" do
+        let(:valid_achievement) { FactoryGirl.attributes_for(:public_achievement, title: "New title") }      
+
+        before do
+          put :update, id: achievement, achievement: valid_achievement
+        end
+
+        it "redirects to achievements#show" do
+          expect(response).to redirect_to achievement
+        end
+
+        it "updates data in the database" do
+          achievement.reload
+          expect(achievement.title).to eq "New title"
+        end
+      end
+
+      context "invalid input" do
+        let(:invalid_achievement) { FactoryGirl.attributes_for(:public_achievement, title: "") }
+
+        before do
+          put :update, id: achievement, achievement: invalid_achievement
+        end
+
+        it "renders an edit template" do
+          expect(response).to render_template :edit
+        end
+
+        it "does not update database" do
+          achievement.reload
+          expect(achievement).not_to be ""
+        end
+      end
+    end
+
+    describe "DELETE destroy" do
+      before do
+        delete :destroy, id: achievement
+        expect(Achievement.count).to eq 0
+      end
+
+      it "redirects to achievement#index" do
+        expect(response).to redirect_to achievements_path
+      end
+
+      it "destroys achievement from database" do
+        expect(Achievement.exists?(achievement.id)).to be false
+      end
+    end
+  end
+end
+```
+
+* remove duplication and move to shared_examples  
+```ruby
+describe AchievementsController do
+  shared_examples "public access to achievements" do
+    describe "GET index" do
+      it "renders :index template" do
+        get :index
+        expect(response).to render_template :index
+      end
+      
+      it "assigns only public achievements to view" do
+        public_achievement = FactoryGirl.create(:public_achievement)
+        private_achievement = FactoryGirl.create(:private_achievement)
+        
+        get :index
+        expect(assigns[:achievements]).to match_array([public_achievement])
+      end
+    end
+
+    describe "GET new" do
+      it "redirects to user#new page" do
+        get :new
+        expect(response).to redirect_to new_user_session_path
+      end
+    end
+
+    describe "GET show" do
+      let(:achievement) { FactoryGirl.create(:achievement) }
+
+      it "renders :show template" do
+        get :show, { id: achievement.id }
+        expect(response).to render_template(:show)
+      end
+
+      it "assigns reqested achievement to @achievement" do
+        get :show, { id: achievement.id }
+        expect(assigns[:achievement]).to eq achievement
+      end
+    end
+  end
+end
+```
+
+* call `shared_examples` with `it_behaves_like "method"`, alternatively, move shared_examples to `spec/support/shared_examples.rb`
+```ruby
+describe "guest user" do
+  it_behaves_like "public access to achievements"
+  #...
+end
+```
+
+* run whole spec will fail since feature test is not logged in user  
+
+* implement log_in in feature spec `create_achievement_spec.rb`, by create new class in `spec/support/features/login_form.rb` and use in spec  
+```ruby
+# spec/support/features/login_form.rb
+class LoginForm
+  # include to user Capybara methods
+  include Capybara::DSL
+
+  def visit_page
+    # default page view already provided with devise gem
+    # check routes in rake routes
+    visit("/users/sign_in")
+    self
+  end
+
+  def login_as(user)
+    # default devise gem signin view with input "Email", "Password" and "Log in"
+    fill_in("Email", with: user.email)
+    fill_in("Password", with: user.password)
+    click_on("Log in")
+    self
+  end
+end
+```
+
+```ruby
+feature 'create new achievement' do
+  #...
+  let(:login_form) { LoginForm.new }
+  let(:user) { FactoryGirl.create(:user) }
+
+  before do
+    login_form.visit_page.login_as(user)
+  end
+
+  # scenario "..."  
+  # ...
 end
 ```
