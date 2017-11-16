@@ -18,8 +18,12 @@
   * [Install devise](#install-devise)  
   * [Testing authenticaion](#testing-authentication)  
   * [Testing authorization](#testing-authorization)  
+* [Model tests](#model-test)  
+  * [validation](#validation)  
+  * [Shoulda matcher](#shoulda-matcher)  
+  * [Test instance method](#test instance method)  
 
-   
+
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
 
 ## Project Initialization  
@@ -1109,4 +1113,113 @@ feature 'create new achievement' do
   # scenario "..."  
   # ...
 end
+```
+
+## Model tests  
+* ActiveRecord model is mostly responsibled for validation, association, db query and business logic  
+
+### validation  
+* validate `Achievement` model  
+
+* to create custom validation with custom method  
+```ruby
+validate :custom_validation
+
+def custom_validation
+  existing = self.class.find_by(title: title)
+  if existing && existing.user == user
+    # custom error
+    errors.add(:title, "title can't be the same")
+  end 
+end
+```
+
+* custom uniqueness validation  with rails helper  
+```ruby
+class Achievement < ActiveRecord::Base
+  ## unique title for the whole database
+  # validates :title, uniqueness: true
+
+  validates :title, uniqueness: {
+    # title unique for one title per user_id
+    scope: :user_id,
+    message: "You already have the same title" 
+  }
+end  
+```
+
+### Shoulda matcher  
+* use for testing rails model methods and association  
+
+* include gemfile `gem shoulda-matchers, require: false` in test group and run bundle install  
+
+* require in `rails_helper`
+```ruby
+require 'rspec/rails'
+require 'shoulda/matchers'
+#...
+```
+
+* test for model association, validation and so on, refer to `shoulda-matchers` spec  
+```ruby
+describe Achievement do
+  describe 'validations' do
+    it { should validate_presence_of(:title) }
+    it { should validate_uniqueness_of(:title).scoped_to(:user_id).with_message("You already have the same title") }
+    it { should validate_presence_of(:user) }
+    it { should belong_to(:user) }
+  end
+end
+```
+
+```ruby
+# Achievement Model
+class Achievement < ActiveRecord::Base
+  belongs_to :user
+  
+  validates :title, presence: true
+  validates :user, presence: true
+  validates :title, uniqueness: {
+    scope: "user_id",
+    message: "You already have the same title"
+  }
+
+  # ...
+end
+```
+
+### test instance method  
+* instance model with data, run method on the object and expect the value  
+
+* DO NOT test api, use stub and mock for API, test only a return for instance method only  
+
+```ruby
+# model
+class Achievement < ActiveRecord::Base
+  def description_html
+    Redcarpet::Markdown.new(Redcarpet::Render::HTML).render(description).html_safe
+  end
+
+  def author
+    "#{title} #{user.email}"
+  end
+end
+```
+
+```ruby
+# rspec test
+it "converts markdown to html" do
+  achievement = Achievement.new(description: "**Awesome** *test*")
+  # use include to test string include html string 
+  expect(achievement.description_html).to include("<strong>Awesome</strong>")
+  expect(achievement.description_html).to include("<em>test</em>")    
+end
+
+it "returns author string" do
+  user = FactoryGirl.create(:user, email: "123@email.com")
+  achievement = FactoryGirl.build(:public_achievement, title: "test", user: user )
+
+  expect(achievement.author).to eq("test 123@email.com")
+end
+
 ```

@@ -4,8 +4,6 @@ feature 'achievement page' do
 
     visit("/achievements/#{achievement.id}")
     expect(page).to have_content('Public achievement')
-
-
   end
 
   scenario 'render markdown description' do
