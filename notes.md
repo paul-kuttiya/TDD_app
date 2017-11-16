@@ -22,6 +22,7 @@
   * [validation](#validation)  
   * [Shoulda matcher](#shoulda-matcher)  
   * [Test instance method](#test instance method)  
+  * [Test DB Queries][#test-db-queries]
 
 
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
@@ -1208,18 +1209,73 @@ end
 
 ```ruby
 # rspec test
-it "converts markdown to html" do
-  achievement = Achievement.new(description: "**Awesome** *test*")
-  # use include to test string include html string 
-  expect(achievement.description_html).to include("<strong>Awesome</strong>")
-  expect(achievement.description_html).to include("<em>test</em>")    
+describe "#description_html" do
+  it "converts markdown to html" do
+    achievement = Achievement.new(description: "**Awesome** *test*")
+    # use include to test string include html string 
+    expect(achievement.description_html).to include("<strong>Awesome</strong>")
+    expect(achievement.description_html).to include("<em>test</em>")    
+  end
 end
 
-it "returns author string" do
-  user = FactoryGirl.create(:user, email: "123@email.com")
-  achievement = FactoryGirl.build(:public_achievement, title: "test", user: user )
+describe "#author" do
+  it "returns author string" do
+    user = FactoryGirl.create(:user, email: "123@email.com")
+    achievement = FactoryGirl.build(:public_achievement, title: "test", user: user )
 
-  expect(achievement.author).to eq("test 123@email.com")
+    expect(achievement.author).to eq("test 123@email.com")
+  end
 end
+```
 
+### Test DB Queries
+* setup record in order, call method and expec the return  
+```ruby
+# rspec
+describe "get_letter" do
+  it "returns array of match letter" do
+    user = FactoryGirl.create(:user)
+    achievement1 = FactoryGirl.create(:public_achievement, title: "achievement X", user: user)
+    achievement2 = FactoryGirl.create(:public_achievement, title: "achievement Y", user: user)
+
+    expect(Achievement.get_letter("X")).to eq([achievement1])
+  end
+end
+```
+
+```ruby
+# Achievement model
+def self.get_letter(letter)
+  # rails helper query "%#{letter}%" search for whole string
+  # if "#{letter}%" search for first letter of the string
+
+  where("title LIKE ?", "%#{letter}%")
+end
+```
+
+```ruby
+describe "get_letter" do
+  it "returns array of match letter" do
+    #...
+  end
+
+  it "sorts achievements by user emails" do
+    a = FactoryGirl.create(:user, email: "a@email.com")
+    b = FactoryGirl.create(:user, email: "b@email.com")      
+    achievement1 = FactoryGirl.create(:public_achievement, title: "Read achievement", user: b)
+    achievement2 = FactoryGirl.create(:public_achievement, title: "Rock achievement", user: a)
+
+    expect(Achievement.get_letter("R")).to eq([achievement2, achievement1])
+  end
+end
+```
+
+```ruby
+# Achievement model
+def self.get_letter(letter)
+  # query with association
+  # .include(:model_association_method).order("table.param")
+  # will query with model associated method and order by table params 
+  where("title LIKE ?", "%#{letter}%").includes(:user).order("users.email")
+end
 ```

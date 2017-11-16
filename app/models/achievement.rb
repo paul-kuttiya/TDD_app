@@ -17,4 +17,8 @@ class Achievement < ActiveRecord::Base
   def author
     "#{title} #{user.email}"
   end
+
+  def self.get_letter(letter)
+    where("title LIKE ?", "%#{letter}%").includes(:user).order("users.email")
+  end
 end
