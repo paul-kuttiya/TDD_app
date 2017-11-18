@@ -24,9 +24,12 @@ gem 'redcarpet'
 # user auth
 gem 'devise'
 
+group :development do
+  gem 'web-console', '~> 2.0'
+end
+
 group :development, :test do
   gem 'byebug'
-  gem 'web-console', '~> 2.0'
   # keep rails running without reboot
   gem 'spring'
   gem 'spring-commands-rspec'
@@ -44,5 +47,5 @@ group :test do
   gem 'launchy'
   gem 'cucumber-rails', require: false
   gem 'database_cleaner'
-  gem 'shoulda-matchers'
+  gem 'shoulda-matchers', require: false
 end
