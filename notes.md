@@ -1514,7 +1514,7 @@ end
 ```ruby
 # controller
 def create
-  @achievement = Achievement.new(achievement_params, current_user)
+  @achievement = Achievement.new(achievement_params.merge(user: current_user))
   
   render nothing: true
 
