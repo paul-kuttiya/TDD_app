@@ -15,7 +15,7 @@ class AchievementsController < ApplicationController
 
   def update
     if @achievement.update(achievement_params)
-      redirect_to @achievement
+      redirect_to achievement_path(@achievement)
     else
       render :edit
     end
@@ -28,10 +28,10 @@ class AchievementsController < ApplicationController
   end
 
   def create
-    @achievement = Achievement.new(achievement_params)
+    @achievement = Achievement.new(achievement_params.merge(user: current_user))
 
     if @achievement.save
-      redirect_to @achievement, notice: "Achievement has been created"
+      redirect_to achievement_path(@achievement), notice: "Achievement has been created" 
     else
       render :new
     end
@@ -48,10 +48,10 @@ class AchievementsController < ApplicationController
     
     if current_user != @achievement.user
       redirect_to achievements_path
-    end 
+    end
   end
 
   def achievement_params
-    params.require(:achievement).permit! 
+    params.require(:achievement).permit!
   end
 end

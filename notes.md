@@ -16,14 +16,16 @@
   * [Test index and edit](#test-index-and-edit)   
   * [Test update and destroy](#test-update-and-destroy)    
   * [Install devise](#install-devise)  
+  * [Shared examples](#shared-examples)  
   * [Testing authenticaion](#testing-authentication)  
   * [Testing authorization](#testing-authorization)  
 * [Model tests](#model-test)  
   * [validation](#validation)  
   * [Shoulda matcher](#shoulda-matcher)  
   * [Test instance method](#test instance method)  
-  * [Test DB Queries][#test-db-queries]
-
+  * [Test DB Queries][#test-db-queries]  
+* [Test in isolation](#test-in-isolation)  
+  * [Test controller in isolation](#test-controller-in-isolation)  
 
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
 
@@ -187,7 +189,7 @@ end
 class Achievement < ActiveRecord::Base
   # create model method privacies, which can query string in array and store number in db
   # Achievement.privacies == {"public_access"=>0, "private_access"=>1, "friends_access"=>2}
-  # Achievement.public_access == [#array_of_public_access in db]
+  # Achievement.public_access == [Achievement_array of public_access_objects in db]
   enum privacy: [:public_access, :private_access, :friends_access]
 end
 ```
@@ -719,6 +721,46 @@ require 'devise'
 RSpec.configure do |config|
   #...
   config.include Devise::TestHelpers, type: :controller
+end
+```
+
+### Shared examples
+* when test is expected with the same results, refactor using `shared_examples`  
+```ruby
+shared_examples "public access to achievements" do
+  # let ...
+  # before ...
+  it "redirects to sign in path" do
+    get :edit, id: 1
+    expect(response).to redirect_to(new_user_session_path)
+  end
+
+  # ...
+end
+```
+
+* when use in test block define `it_behaves_like "shared_examples_name"`  
+```ruby
+describe "guest users" do
+  it_behaves_like "public access to achievements"
+end
+```
+
+* define action to yeild action variable in `shared_examples`
+
+```ruby
+shared_examples "public access to achievements" do
+  it "redirects to sign in path" do
+    action
+    expect(response).to redirect_to(new_user_session_path)
+  end
+end
+```
+
+* use `let` inside `it_behaves_like` block to yield action
+```ruby
+it_behaves_like "public access to achievements" do
+  let(:action) { get :index }
 end
 ```
 
@@ -1277,5 +1319,286 @@ def self.get_letter(letter)
   # .include(:model_association_method).order("table.param")
   # will query with model associated method and order by table params 
   where("title LIKE ?", "%#{letter}%").includes(:user).order("users.email")
+end
+```
+
+## Test in isolation  
+* use for testing dependencies(code that depends on other code) by replaced the object with fake object(test double) then query message and/or command message  
+
+### query message(stub)
+* get some data in return, if not specified return nil  
+
+* work flow: arrange(build obj), act(method or return), assert(expect)   
+```ruby
+# stub dependency and return predefined value
+fake = Double(:fake) # replace with fake obj
+allow(fake).to receive(:method) { return_value } # stub method and return predefined value
+```
+
+```ruby
+# rspec double with defined class and stub method return
+let(:double) { double("ClassName", some_method: nil) }
+```
+
+### command message(mock)
+* tell object to do something(side effect)
+
+* work flow: arrange, assert(expect) then act  
+
+> mock the expectation needs to come before action  
+
+```ruby
+# mock
+# ensure that message(method) has been sent  
+# replace obj with test double
+# expect message sent to the object
+expect(double).to receive(:message)
+```
+
+### Test controller in isolation  
+* revise `achievements_controller` test to test in isolation  
+
+* test for `guest user` index action
+```ruby
+# controller
+def index
+  @achievements = Achievement.public_access
+end
+
+# rspec
+describe AchievementsController do
+  describe "guest user" do
+    describe "GET index" do
+      # define variable achievement to be double's instace of Achievement 
+      let(:achievement) { instance_double(Achievement) }
+      
+      before do
+        # send message to Achievement to receive method "public_access" and return array [ achievement ]
+        allow(Achievement).to receive(:public_access) { [ achievement ] }
+      end
+
+      it "renders index template" do
+        get :index
+        expect(response).to render_template(:index)
+      end
+
+      it "finds public achievements" do
+        get :index
+
+        # expect @achievements === [achievement]
+        expect(assigns[:achievements]).to eq([achievement])
+      end
+    end
+  end
+end
+```
+
+* test for `"guest user"` show action
+```ruby
+# controller
+def show
+  @achievement = Achievement.find(params[:id])
+end
+
+# test
+describe "GET show" do
+  let(:achievement) { instance_double(Achievement) }
+  
+  before do
+    allow(Achievement).to receive(:find) { achievement }
+  end
+
+  it "renders template show" do
+    get :show, id: achievement
+    expect(response).to render_template(:show)
+  end
+
+  it "finds achievement" do
+    get :show, id: achievement
+    expect(assigns[:achievement]).to eq achievement
+  end
+end
+```
+
+* wrap show and index test in `shared_examples "public access to achievements"`  
+```ruby
+shared_examples "public access to achievements" do
+  describe "GET index" do
+    let(:achievement) { instance_double(Achievement) }
+    
+    before do
+      allow(Achievement).to receive(:public_access) { [ achievement ] }
+    end
+
+    it "renders index template" do
+      get :index
+      expect(response).to render_template(:index)
+    end
+
+    it "finds public achievements" do
+      get :index
+      expect(assigns[:achievements]).to eq([achievement])
+    end
+  end
+
+  describe "GET show" do
+    let(:achievement) { instance_double(Achievement) }
+    
+    before do
+      allow(Achievement).to receive(:find) { achievement }
+    end
+
+    it "renders template show" do
+      get :show, id: achievement
+      expect(response).to render_template(:show)
+    end
+
+    it "finds achievement" do
+      get :show, id: achievement
+      expect(assigns[:achievement]).to eq achievement
+    end
+  end
+end
+```
+
+* then reuse in `guest user`
+```ruby
+describe "guest user" do
+  it_behaves_like "public access to achievements"
+end
+```
+
+* create `shared_examples` for `unauthorized user` and use in guest user  
+```ruby
+# rspec AchievementsController
+
+shared_examples "public access to achievements" do
+  #...
+end
+
+shared_examples "unauthorized user" do
+  it "redirects to sign in page" do
+    action
+    expect(response).to redirect_to(new_user_session_path)
+  end
+end
+
+describe "guest user" do
+  let(:achievement_params) { { title: "title" } }
+
+  it_behaves_like "public access to achievements"
+
+  it_behaves_like "unauthorized user" do
+    let(:action) { get :new }
+  end
+
+  it_behaves_like "unauthorized user" do
+    let(:action) { post :create, achievement: achievement_params }
+  end
+
+  it_behaves_like "unauthorized user" do
+    let(:action) { get :edit, id: 1 }
+  end
+
+  it_behaves_like "unauthorized user" do
+    let(:action) { put :update, id: 1, achievement: achievement_params }
+  end
+
+  it_behaves_like "unauthorized user" do
+    let(:action) { delete :destroy, id: 1 }
+  end
+end
+``` 
+
+* re-implement rspec for `auth user` create action, test for `"instantiated new achievement"` 
+```ruby
+# controller
+def create
+  @achievement = Achievement.new(achievement_params, current_user)
+  
+  render nothing: true
+
+  # if @achievement.save
+  #  redirect_to @achievement
+  # else
+  #  render :new
+  # end
+end
+```
+```ruby
+# rspec
+describe "authenticated user" do
+  # create instance double for user and achievement
+  let(:user) { instance_double(User) }
+  let(:achievement) { instance_double(Achievement) }
+
+  # fake params when post to controller
+  let(:achievement_params) { {title: "some title"} }
+  
+  before do
+    # stub devise authenticate_user! method for our controller and return true for successful sign in
+    allow(controller).to receive(:authenticate_user!) { true }
+    # stub devise current_user method and return our user double
+    allow(controller).to receive(:current_user) { user }
+  end
+
+  describe "POST create" do
+    it "instantiated new achievement" do
+      # check if Achievement receive message new with params and user
+      expect(Achievement).to receive(:new).with(achievement_params, user)
+      # then post to controller with fake params
+      post :create, achievement: achievement_params
+    end
+  end
+end
+```
+
+* test the rest of auth user create action  
+```ruby
+# controller
+def create
+  @achievement = Achievement.new(achievement_params, current_user)
+
+  if @achievement.save
+    redirect_to @achievement
+  else
+    render :new
+  end
+end
+```
+```ruby
+# test
+describe "authenticated user" do
+  let(:user) { instance_double(User) }
+  let(:achievement) { instance_double(Achievement) }
+  let(:achievement_params) { {title: "some title"} }
+  
+  before do
+    allow(controller).to receive(:authenticate_user!) { true }
+    allow(controller).to receive(:current_user) { user }
+
+    # need to stub new with params and return our fake double achievement
+    allow(Achievement).to receive(:new).with(achievement_params, user) { achievement }
+    # then need to stub save for our achievement double in order to execute the rest of our code
+    allow(achievement).to receive(:save)
+  end
+
+  # with all before block that already stubbed, will make our code run smoothly
+  describe "POST create" do
+    it "instantiated new achievement" do
+      expect(Achievement).to receive(:new).with(achievement_params, user)
+      post :create, achievement: achievement_params
+    end
+
+    context "invalid input" do
+      it "render new template" do
+        # check invalid input by overwriting our stub for achievement double; save method to return false
+        allow(achievement).to receive(:save) { false }
+        # then post, don't care if params is valid or not, since the stubbed save method returns false
+        post :create, achievement: achievement_params
+        expect(response).to render_template :new
+      end
+    end
+  end
 end
 ```

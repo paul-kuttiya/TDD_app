@@ -40,6 +40,8 @@ end
 
 group :test do
   gem 'capybara'
+  # capybara save_and_open_page
+  gem 'launchy'
   gem 'cucumber-rails', require: false
   gem 'database_cleaner'
   gem 'shoulda-matchers'
