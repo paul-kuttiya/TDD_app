@@ -1338,10 +1338,13 @@ allow(fake).to receive(:method) { return_value } # stub method and return predef
 ```ruby
 # rspec double with defined class and stub method return
 let(:double) { double("ClassName", some_method: nil) }
+# instance double
+let(:double) { instance_double(ClassName, some_method: nil) }
+
 ```
 
 ### command message(mock)
-* tell object to do something(side effect)
+* tell object to do something(side effect), then act to see if message is passed
 
 * work flow: arrange, assert(expect) then act  
 
@@ -1353,6 +1356,8 @@ let(:double) { double("ClassName", some_method: nil) }
 # replace obj with test double
 # expect message sent to the object
 expect(double).to receive(:message)
+# mock always comes before action
+get :index
 ```
 
 ### Test controller in isolation  
@@ -1516,44 +1521,55 @@ end
 def create
   @achievement = Achievement.new(achievement_params.merge(user: current_user))
   
-  render nothing: true
+  ## uncomment and comment the rest of the code below render to specifically test the code above 
+  # render nothing: true
 
-  # if @achievement.save
-  #  redirect_to @achievement
-  # else
-  #  render :new
-  # end
+  if @achievement.save
+    redirect_to @achievement
+  else
+    render :new
+  end
 end
 ```
 ```ruby
 # rspec
 describe "authenticated user" do
-  # create instance double for user and achievement
-  let(:user) { instance_double(User) }
-  let(:achievement) { instance_double(Achievement) }
+  it_behaves_like "public access to achievements"
 
-  # fake params when post to controller
-  let(:achievement_params) { {title: "some title"} }
-  
+  # create instance double for user
+  let(:user) { instance_double(User) }
+
   before do
-    # stub devise authenticate_user! method for our controller and return true for successful sign in
+    # stub devise authenticate_user! method for our controller and return true to successful sign in
     allow(controller).to receive(:authenticate_user!) { true }
-    # stub devise current_user method and return our user double
+    # stub devise current_user method and return our user double to user our user double as current_user
     allow(controller).to receive(:current_user) { user }
   end
 
   describe "POST create" do
+    # create instance for params since Achievement.new(achievement_params.merge(user: current_user)) will return { title: "..", description: "...", user_id: ".." }
+    # user which passed in params is our stubbed current_user
+    let(:achievement_params) { {title: "some title", user: user} }
+
     it "instantiated new achievement" do
-      # check if Achievement receive message new with params and user
-      expect(Achievement).to receive(:new).with(achievement_params, user)
-      # then post to controller with fake params
+      # create instance double with message 'save'
+      # when test runs need to test the whole block of code, message 'save' will be needed for 'if @achievement.save'
+      achievement = instance_double(Achievement, save: true)
+
+      # stub new method and return achievement double
+      allow(Achievement).to receive(:new) { achievement }
+
+      # test with command message for Achievement, new method with passed parameters
+      expect(Achievement).to receive(:new).with(achievement_params)
+
+      # then post to controller with our test params to ensure the command message is received
       post :create, achievement: achievement_params
     end
   end
 end
 ```
 
-* test the rest of auth user create action  
+* test create action with invalid input and valid input
 ```ruby
 # controller
 def create
@@ -1569,36 +1585,259 @@ end
 ```ruby
 # test
 describe "authenticated user" do
+  # stub for devise..
   let(:user) { instance_double(User) }
-  let(:achievement) { instance_double(Achievement) }
-  let(:achievement_params) { {title: "some title"} }
-  
+    
   before do
     allow(controller).to receive(:authenticate_user!) { true }
     allow(controller).to receive(:current_user) { user }
-
-    # need to stub new with params and return our fake double achievement
-    allow(Achievement).to receive(:new).with(achievement_params, user) { achievement }
-    # then need to stub save for our achievement double in order to execute the rest of our code
-    allow(achievement).to receive(:save)
   end
 
-  # with all before block that already stubbed, will make our code run smoothly
   describe "POST create" do
-    it "instantiated new achievement" do
-      expect(Achievement).to receive(:new).with(achievement_params, user)
-      post :create, achievement: achievement_params
-    end
+    # params always need user for auth user
+    let(:achievement_params) { {title: "some title", user: user} }
 
     context "invalid input" do
+      # for invalid input @achievement.save will be false
+      # create achievement double with save method to return false
+      let(:achievement) { instance_double(Achievement, save: false) }
+
+      # then stubbed Achievement.new to return our double
+      before do
+        allow(Achievement).to receive(:new) { achievement }
+      end
+
       it "render new template" do
-        # check invalid input by overwriting our stub for achievement double; save method to return false
-        allow(achievement).to receive(:save) { false }
-        # then post, don't care if params is valid or not, since the stubbed save method returns false
         post :create, achievement: achievement_params
+
+        # our double save will return false
         expect(response).to render_template :new
+      end
+
+      it "assigns achievement to the template" do
+        post :create, achievement: achievement_params
+
+        # @achivement will eq achievement double since we stubbed out Achievement.new and return the double
+        expect(assigns[:achievement]).to eq achievement          
+      end
+
+      context "valid input" do
+        # define achievement double, alternatively, can define save message here as well.
+        let(:achievement) { instance_double(Achievement) }
+      
+        before do
+          # stub Achievement.new then return our double
+          allow(Achievement).to receive(:new) { achievement }
+
+          # stub save method with our double and return true
+          allow(achievement).to receive(:save) { true }
+        end
+
+        it "redirects to achievement page" do
+          post :create, achievement: achievement_params
+
+          # achievement.save == true
+          expect(response).to redirect_to achievement_path achievement
+        end
       end
     end
   end
 end
 ```
+
+* implement user signed in but `user is not the owner`  
+```ruby
+before_action :owners_only, only: [:edit, :update, :destroy]
+
+# if user is not the owner will redirect
+def owners_only
+  @achievement = Achievement.find(params[:id])
+  
+  if current_user != @achievement.user
+    redirect_to achievements_path
+  end
+end
+```
+
+```ruby
+describe "authenticated user" do
+  # stub for devise..
+  let(:user) { instance_double(User) }
+    
+  before do
+    allow(controller).to receive(:authenticate_user!) { true }
+    allow(controller).to receive(:current_user) { user }
+  end
+
+  #...
+
+  context "user is not the owner" do
+    # create instance achievement_user double for User 
+    let(:achievement_user) { instance_double(User) }
+
+    # create achievement double then assigns achievement_user double as a return for user method.
+    let(:achievement) { instance_double(Achievement, user: achievement_user) }
+    
+    before do
+      # stub method find and return our double
+      allow(Achievement).to receive(:find) { achievement }
+    end
+
+    # then when action occur at `if current_user != @achievement.user`, our current_user double; user will not equal with @achievement.user which already stubbed out with achievement.user
+    describe "GET edit" do
+      it "redirect to achievements page" do
+        get :edit, id: achievement
+
+        expect(response.status).to redirect_to achievements_path
+      end
+    end
+
+    describe "PUT update" do
+      it "redirect to achievements page" do
+        put :update, id: achievement
+
+        expect(response.status).to redirect_to achievements_path
+      end
+    end
+
+    describe "DELETE destroy" do
+      it "redirect to achievements page" do
+        delete :destroy, id: achievement
+
+        expect(response).to redirect_to achievements_path
+      end
+    end
+  end
+end
+```
+
+* implement user signed in and `user is the owner` 
+```ruby
+# controller
+before_action :owners_only, only: [:edit, :update, :destroy]
+
+#...
+
+def edit
+end
+
+def update
+  if @achievement.update(achievement_params)
+    redirect_to achievement_path(@achievement)
+  else
+    render :edit
+  end
+end
+
+def destroy
+  if @achievement.destroy
+    redirect_to achievements_path
+  end
+end
+
+private
+def owners_only
+  @achievement = Achievement.find(params[:id])
+  
+  if current_user != @achievement.user
+    redirect_to achievements_path
+  end
+end
+```
+
+```ruby
+# test
+describe "authenticated user" do
+  # stub for devise..
+  let(:user) { instance_double(User) }
+    
+  before do
+    allow(controller).to receive(:authenticate_user!) { true }
+    allow(controller).to receive(:current_user) { user }
+  end
+
+  context "user is the owner" do
+    # to pass owners_only method current_user(stubbed with our user double) needs to be equal with achievement.user
+    # so we create double achievement with user method to return user(stubbed for current_user)
+    let(:achievement) { instance_double(Achievement, user: user) }
+
+    before do
+      # then we stubbed Achievement find method to return achievement double(with user method which will return user double that equal to current_user)
+      # then we will get to test for owners
+      allow(Achievement).to receive(:find) { achievement }
+      get :edit, id: achievement
+    end
+
+    describe "GET edit" do
+      before do
+        # get edit with id from achievement
+        # id can be any integer since we stubbed out the find method and predefined the return
+        get :edit, id: achievement
+      end
+      
+      it "renders edit template" do
+        expect(response).to render_template :edit
+      end
+      
+      it "sets achievement for edit template" do
+        # stubbed out Achievement.find
+        # so @achievement == achievement double
+        expect(assigns[:achievement]).to eq achievement 
+      end
+    end
+
+    describe "PUT update" do
+      context "valid input" do
+        # no need for user in update params since the user needs to be the same user to reach update action
+        let(:achievement_params) { {title: "new title"} }
+
+        before do
+          # our achievement double from outer scope(stubbed with Achievement.find)
+          # will stubbed the update method with params and return true
+          allow(achievement).to receive(:update).with(achievement_params) { true }
+          put :update, id: achievement, achievement: achievement_params
+        end
+
+        # @achievement.update is true
+        # @achievement = achievement double
+        it "redirect to achievement page" do
+          expect(response).to redirect_to achievement_path(achievement)
+        end
+      end
+
+      context "invalid input" do
+        let(:achievement_params) { {title: ""} }
+
+        before do
+          # stub achievement then return false when recieve message update
+          allow(achievement).to receive(:update).with(achievement_params) { false }
+          put :update, id: achievement, achievement: achievement_params
+        end
+
+        it "render edit template" do
+          expect(response).to render_template :edit
+        end
+
+        it "assigns achievement for edit template" do
+          expect(assigns[:achievement]).to eq achievement
+        end
+      end
+    end
+
+    describe "DELETE destroy" do
+      before do
+        # our achievement double from outer scope
+        # assign with destroy message and return true
+        allow(achievement).to receive(:destroy) { true }
+      end
+
+      it "redirects to achievements page" do
+        delete :destroy, id: achievement
+        expect(response).to redirect_to achievements_path
+      end
+    end
+  end
+end
+```
+
+## 

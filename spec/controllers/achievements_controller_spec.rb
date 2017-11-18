@@ -296,7 +296,6 @@ describe AchievementsController do
     it_behaves_like "public access to achievements"
     
     let(:user) { instance_double(User) }
-    let(:achievement_params) { {title: "some title", user: user} }
     
     before do
       allow(controller).to receive(:authenticate_user!) { true }
@@ -304,6 +303,8 @@ describe AchievementsController do
     end
 
     describe "POST create" do
+      let(:achievement_params) { {title: "some title", user: user} }
+
       it "instantiated new achievement" do
         achievement = instance_double(Achievement, save: true)
         allow(Achievement).to receive(:new) { achievement }
@@ -313,10 +314,11 @@ describe AchievementsController do
       end
 
       context "invalid input" do
-        let(:achievement) { instance_double(Achievement, save: false) }
+        let(:achievement) { instance_double(Achievement)}
       
         before do
           allow(Achievement).to receive(:new) { achievement }
+          allow(achievement).to receive(:save) { false }
         end
 
         it "render new template" do
@@ -340,7 +342,7 @@ describe AchievementsController do
 
         it "redirects to achievement page" do
           post :create, achievement: achievement_params
-          expect(response.status).to redirect_to achievement_path achievement
+          expect(response).to redirect_to achievement_path achievement
         end
       end
     end
@@ -383,16 +385,19 @@ describe AchievementsController do
 
       before do
         allow(Achievement).to receive(:find) { achievement }
-        get :edit, id: achievement
       end
       
       describe "GET edit" do
+        before do
+          get :edit, id: achievement
+        end
+        
         it "renders edit template" do
           expect(response).to render_template :edit
         end
 
         it "sets achievement for edit template" do
-          expect(assigns[:achievement]).to eq achievement          
+          expect(assigns[:achievement]).to eq achievement 
         end
       end
 
@@ -429,10 +434,7 @@ describe AchievementsController do
       end
 
       describe "DELETE destroy" do
-        let(:achievement) { instance_double(Achievement, user: user) }
-
         before do
-          allow(Achievement).to receive(:find) { achievement }
           allow(achievement).to receive(:destroy) { true }
         end
 

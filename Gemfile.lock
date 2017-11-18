@@ -235,14 +235,14 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bootstrap-sass
+  bootstrap-sass (~> 3.3.4)
   byebug
-  capybara
+  capybara (~> 2.4.4)
   coffee-rails (~> 4.1.0)
-  cucumber-rails
+  cucumber-rails (~> 1.4.2)
   database_cleaner
-  devise
-  factory_girl_rails
+  devise (~> 3.4.1)
+  factory_girl_rails (~> 4.5.0)
   haml
   jbuilder (~> 2.0)
   jquery-rails
@@ -250,12 +250,12 @@ DEPENDENCIES
   pry
   puma
   rails (= 4.2.2)
-  redcarpet
+  redcarpet (~> 3.2.3)
   rspec-rails (~> 3.5)
   sass-rails (~> 5.0)
   sdoc (~> 0.4.0)
-  shoulda-matchers
-  simple_form
+  shoulda-matchers (~> 2.7.0)
+  simple_form (~> 3.1.0)
   spring
   spring-commands-cucumber
   spring-commands-rspec

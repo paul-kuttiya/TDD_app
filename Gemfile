@@ -15,14 +15,14 @@ gem 'jbuilder', '~> 2.0'
 gem 'sdoc', '~> 0.4.0', group: :doc
 
 gem 'puma'
-gem 'bootstrap-sass'
-gem 'simple_form'
+gem 'bootstrap-sass', '~> 3.3.4'
+gem 'simple_form', '~> 3.1.0'
 
 # use for render markdown as form input
-gem 'redcarpet'
+gem 'redcarpet', '~> 3.2.3'
 
 # user auth
-gem 'devise'
+gem 'devise', '~> 3.4.1'
 
 group :development do
   gem 'web-console', '~> 2.0'
@@ -37,15 +37,15 @@ group :development, :test do
   gem 'rspec-rails', '~> 3.5'
 
   # fabricate tests and seed object
-  gem 'factory_girl_rails'
+  gem 'factory_girl_rails', '~> 4.5.0'
   gem 'pry'
 end
 
 group :test do
-  gem 'capybara'
+  gem 'capybara', '~> 2.4.4'
   # capybara save_and_open_page
   gem 'launchy'
-  gem 'cucumber-rails', require: false
+  gem 'cucumber-rails', '~> 1.4.2', require: false
   gem 'database_cleaner'
-  gem 'shoulda-matchers', require: false
+  gem 'shoulda-matchers', '~> 2.7.0', require: false
 end
