@@ -9,13 +9,12 @@ class NewAchievementForm
     self # returns self to be able to chain method
   end
 
-  def fill_in_with(params={title: "Read a book"})
+  def fill_in_with(params={title: "Read a book", cover_image: "placeholder.jpg"})
     fill_in('Title', with: params[:title])
     fill_in('Description', with: 'Excellent read')    
     select('Public', from: 'Privacy')    
     check('Featured achievement')
-    attach_file('Cover image', Rails.root + "spec/fixtures/placeholder.jpg")
-
+    attach_file('Cover image', Rails.root + "spec/fixtures/#{params[:cover_image]}")
     self
   end
 

@@ -18,6 +18,9 @@ gem 'puma'
 gem 'bootstrap-sass', '~> 3.3.4'
 gem 'simple_form', '~> 3.1.0'
 
+# upload file
+gem 'carrierwave'
+
 # use for render markdown as form input
 gem 'redcarpet', '~> 3.2.3'
 

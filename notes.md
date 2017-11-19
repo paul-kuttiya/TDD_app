@@ -30,7 +30,7 @@
   * [testing email](#testing-email)  
     * [implement mailer in feature spec][#implement-mailer-in-feature-spec]  
     * [create mailer and test](#create-mailer-and-test)  
-    *  
+  * [file upload and test](#file-upload-and-test)  
 
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
 
@@ -2004,3 +2004,82 @@ end
 ```
 
 * optionally use `gem letter_opener` to preview mail in browser, `gem email-spec` for `ActionMailer` test matchers
+
+### File upload and test
+* implement file uploader in feature spec and `NewAchievementForm` to take image uploader as param  
+```ruby
+# create_achievement_spec.rb
+scenario 'create new achievement with valid data' do
+  new_achievement_form.visit_page.fill_in_with(
+    title: "Read a book", 
+    cover_image: "placeholder.jpg"
+  ).submit
+  #...
+end
+```
+
+```ruby
+# spec/support/features/new_achievement_form.rb
+# class NewAchievementForm
+def fill_in_with(params={title: "Read a book", cover_image: "placeholder.jpg"})
+  #...
+  
+  attach_file('Cover image', Rails.root + "spec/fixtures/#{params[:cover_image]}")
+  self
+end
+```
+
+* test using `carrierwave` identifier method
+```ruby
+scenario 'create new achievement with valid data' do
+  #...
+
+  # .cover_image_identifier is a carrierwave gem method that returns file name
+  expect(Achievement.last.cover_image_identifier).to eq('placeholder.jpg')
+end
+```
+
+* install `gem 'carrierwave'`
+
+* generate image uploader `rails g uploader CoverImage`, which will create class `CoverImageUploader` in `uploader` folder  
+
+* mount uploader to specify model  
+```ruby
+# Achievement model
+class Achievement < ActiveRecord::Base
+  # mount_uploader :field, UploaderClass
+  mount_uploader :cover_image, CoverImageUploader
+  #...
+end
+```
+
+* create test to upload only certain file type  
+```ruby
+# spec/uploaders/cover_image_uploader_spec.rb
+describe CoverImageUploader do
+  it 'allows only images' do
+    # create uploader using CoverImageUploader.new(instance, field) 
+    uploader = CoverImageUploader.new(Achievement.new, :cover_image)
+
+    # expect a block to raise error
+    expect do
+      # open file and use carrierwave uploader to store a file
+      File.open("#{Rails.root}/spec/fixtures/test.md") do |f|
+        uploader.store!(f)
+      end
+    end.to raise_exception(CarrierWave::IntegrityError)
+end
+```
+
+* upload `test.md` in `spec/fixtures`
+
+* modify `cover_image_uploader.rb`
+```ruby
+# uncomment
+def extension_whitelist
+  %w(jpg jpeg gif png)
+end
+```
+
+* test for file size, dimenison, etc the same way
+
