@@ -31,6 +31,7 @@
     * [implement mailer in feature spec][#implement-mailer-in-feature-spec]  
     * [create mailer and test](#create-mailer-and-test)  
   * [file upload and test](#file-upload-and-test)  
+  * [Test third party api](test-third-party-api)  
 
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
 
@@ -2083,3 +2084,126 @@ end
 
 * test for file size, dimenison, etc the same way
 
+### Test third party api
+* Best approch is to test with integration test then cach api response with `gem vcr` 
+
+* Mock browser response with `gem webmock` which needed to work with `gem vcr`   
+
+#### example: test with twitter api  
+* implement test in feature test  
+```ruby
+# create_achievement_spec.rb
+scenario 'create new achievement with valid data' do
+  #...
+  expect(page).to have_content("Tweeted achievement! at https://twitter.com")
+end
+```
+
+* create twitter app, get token from consumer key and aceess token from twitter at `apps.twitter.com`
+
+* in `AchievementsController` implement `TwitterService` in create action if successfully created  
+```ruby
+def create
+  @achievement = Achievement.new(achievement_params.merge(user: current_user))
+
+  if @achievement.save
+    UserMailer.achievement_created(current_user.email, @achievement.id).deliver_now
+
+    # create twitter service
+    tweet = TwitterService.new.tweet(@achievement.title)
+    redirect_to achievement_path(@achievement), notice: "Achievement has been created. Tweeted achievement! at #{tweet.url}" 
+  else
+    render :new
+  end
+end
+```
+
+* install `gem twitter`
+
+* create twitter service class in `app/services/twitter_service.rb`  
+```ruby
+class TwitterService
+  def initialize
+    # from twitter api doc
+    @client = Twitter::REST::Client.new do |config|
+      # ideally, use figaro to store credentials
+      config.consumer_key = "..."
+      config.consumer_secret = "..."
+      config.access_token = "..."
+      config.access_token_secret = "..."      
+    end
+  end
+
+  def tweet(message)
+    # update is method from twitter api
+    @client.update(message)
+  end
+end
+```
+
+* Twitter will post tweets each time the test is run, capture response then cache with `gem vcr`, and mock the web behavior with `gem webmock`
+```ruby
+group :test do
+  #...
+  gem 'vcr'
+  gem 'webmock'
+end
+```
+
+* config in rails helper
+```ruby
+# ...
+require 'vcr'
+
+VCR.configure do |c|
+  # store requests/response
+  c.cassette_library_dir = 'spec/cassettes'
+  # hook with webmock
+  c.hook_into :webmock
+  # vcr helper for adding to example
+  c.configure_rspec_metadata!
+end
+```
+
+* add vcr to example by specified `:vcr`, when run, the first time it will request and cache resquest/response in cassette then use that for following API request/response tests
+```ruby
+scenario 'create new achievement with valid data', :vcr do
+  # ...
+
+  expect(page).to have_content("Tweeted achievement! at https://twitter.com")
+end
+```
+
+* stubbed `TwitterService` class in controller, will test in isolation  
+```ruby
+describe "POST create" do
+  #...
+  context "valid input", :vcr do
+    let(:achievement) { instance_double(Achievement, id: 1) }
+    # define tweet double
+    let(:tweet) { instance_double(TwitterService) }
+
+    before do
+      allow(Achievement).to receive(:new) { achievement }
+      allow(achievement).to receive(:save) { true }
+      allow(UserMailer).to receive_message_chain(:achievement_created, :deliver_now)
+      # need achievement title for tweet method, stubbed out and return with some string
+      allow(achievement).to receive(:title) { "some title" }
+      # stubbed tweet with our double
+      allow(tweet).to receive(:tweet)
+    end
+  end
+end
+```
+
+* create test for `twiiter_service.rb`
+```ruby
+describe TwitterService do
+  describe "#tweet" do
+    it "update message", :vcr do
+      tweet = TwitterService.new.tweet("message")
+      expect(tweet.id).not_to be_nil
+    end
+  end
+end
+```

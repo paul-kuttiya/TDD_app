@@ -1,0 +1,163 @@
+---
+http_interactions:
+- request:
+    method: post
+    uri: https://api.twitter.com/1.1/statuses/update.json
+    body:
+      encoding: UTF-8
+      string: status=Read+a+book
+    headers:
+      Accept:
+      - application/json
+      User-Agent:
+      - TwitterRubyGem/5.15.0
+      Authorization:
+      - OAuth oauth_consumer_key="fLreLhFULyPeOvJdupgFvvs5S", oauth_nonce="bbcaa328487c21a3c99385c41be1607c",
+        oauth_signature="shHNi5EqR0sOpNcV1gd9mReu79U%3D", oauth_signature_method="HMAC-SHA1",
+        oauth_timestamp="1511122134", oauth_token="915838411-wEZT7tIicMYZVa9g1krGxXOkRDwnocAmpTsVy6rl",
+        oauth_version="1.0"
+      Content-Type:
+      - application/x-www-form-urlencoded
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 403
+      message: Forbidden
+    headers:
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+      Content-Disposition:
+      - attachment; filename=json.json
+      Content-Length:
+      - '85'
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Sun, 19 Nov 2017 20:08:57 GMT
+      Expires:
+      - Tue, 31 Mar 1981 05:00:00 GMT
+      Last-Modified:
+      - Sun, 19 Nov 2017 20:08:57 GMT
+      Pragma:
+      - no-cache
+      Server:
+      - tsa_b
+      Set-Cookie:
+      - guest_id=v1%3A151112213771903874; Expires=Tue, 19 Nov 2019 20:08:57 UTC; Path=/;
+        Domain=.twitter.com
+      - lang=en; Path=/
+      - personalization_id="v1_hmaLGlEOr8O3zd9J/b+Ajw=="; Expires=Tue, 19 Nov 2019
+        20:08:57 UTC; Path=/; Domain=.twitter.com
+      Status:
+      - 403 Forbidden
+      Strict-Transport-Security:
+      - max-age=631138519
+      X-Access-Level:
+      - read-write
+      X-Connection-Hash:
+      - f0d2219bea8c3c36128b1b488c4db229
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Response-Time:
+      - '28'
+      X-Transaction:
+      - 008053b800211477
+      X-Tsa-Request-Body-Time:
+      - '69'
+      X-Twitter-Response-Tags:
+      - BouncerCompliant
+      X-Xss-Protection:
+      - 1; mode=block
+    body:
+      encoding: ASCII-8BIT
+      string: '{"errors":[{"code":187,"message":"Status is a duplicate."}]}'
+    http_version: 
+  recorded_at: Sun, 19 Nov 2017 20:08:54 GMT
+- request:
+    method: get
+    uri: https://api.twitter.com/1.1/statuses/user_timeline.json?count=1
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept:
+      - application/json
+      User-Agent:
+      - TwitterRubyGem/5.15.0
+      Authorization:
+      - OAuth oauth_consumer_key="fLreLhFULyPeOvJdupgFvvs5S", oauth_nonce="48b46b3ede6f558e7194db71aeb699a2",
+        oauth_signature="iWTM3yl3Idd7BQCZ4HCYHiB05q8%3D", oauth_signature_method="HMAC-SHA1",
+        oauth_timestamp="1511122134", oauth_token="915838411-wEZT7tIicMYZVa9g1krGxXOkRDwnocAmpTsVy6rl",
+        oauth_version="1.0"
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, pre-check=0, post-check=0
+      Content-Disposition:
+      - attachment; filename=json.json
+      Content-Length:
+      - '968'
+      Content-Type:
+      - application/json;charset=utf-8
+      Date:
+      - Sun, 19 Nov 2017 20:08:57 GMT
+      Expires:
+      - Tue, 31 Mar 1981 05:00:00 GMT
+      Last-Modified:
+      - Sun, 19 Nov 2017 20:08:57 GMT
+      Pragma:
+      - no-cache
+      Server:
+      - tsa_b
+      Set-Cookie:
+      - guest_id=v1%3A151112213790190663; Expires=Tue, 19 Nov 2019 20:08:57 UTC; Path=/;
+        Domain=.twitter.com
+      - lang=en; Path=/
+      - personalization_id="v1_sR6sIvKPvvIAgvJbUS/Tsg=="; Expires=Tue, 19 Nov 2019
+        20:08:57 UTC; Path=/; Domain=.twitter.com
+      Status:
+      - 200 OK
+      Strict-Transport-Security:
+      - max-age=631138519
+      X-Access-Level:
+      - read-write
+      X-Connection-Hash:
+      - 818abed4b833c832a34512a9d7372f92
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-Rate-Limit-Limit:
+      - '900'
+      X-Rate-Limit-Remaining:
+      - '899'
+      X-Rate-Limit-Reset:
+      - '1511123037'
+      X-Response-Time:
+      - '69'
+      X-Transaction:
+      - 009666dc0061179c
+      X-Twitter-Response-Tags:
+      - BouncerCompliant
+      X-Xss-Protection:
+      - 1; mode=block
+    body:
+      encoding: ASCII-8BIT
+      string: '[{"created_at":"Sun Nov 19 19:04:09 +0000 2017","id":932323628317904896,"id_str":"932323628317904896","text":"Read
+        a book","truncated":false,"entities":{"hashtags":[],"symbols":[],"user_mentions":[],"urls":[]},"source":"\u003ca
+        href=\"http:\/\/bigbeartea.com\" rel=\"nofollow\"\u003ebigbeartea\u003c\/a\u003e","in_reply_to_status_id":null,"in_reply_to_status_id_str":null,"in_reply_to_user_id":null,"in_reply_to_user_id_str":null,"in_reply_to_screen_name":null,"user":{"id":915838411,"id_str":"915838411","name":"Bigbearbubbletea","screen_name":"Bigbearbubblete","location":"5716
+        Woodside NY 11377","description":"Thank you for visiting us. We provide fresh
+        Bubble Tea and French Macrons. \r\nhttp:\/\/t.co\/7WSUItWe2z","url":"http:\/\/t.co\/yTiMQcQreJ","entities":{"url":{"urls":[{"url":"http:\/\/t.co\/yTiMQcQreJ","expanded_url":"http:\/\/bigbearbubbletea.com","display_url":"bigbearbubbletea.com","indices":[0,22]}]},"description":{"urls":[{"url":"http:\/\/t.co\/7WSUItWe2z","expanded_url":"http:\/\/www.bigbearbubbletea.com","display_url":"bigbearbubbletea.com","indices":[77,99]}]}},"protected":false,"followers_count":3,"friends_count":0,"listed_count":0,"created_at":"Wed
+        Oct 31 00:48:04 +0000 2012","favourites_count":0,"utc_offset":-14400,"time_zone":"Atlantic
+        Time (Canada)","geo_enabled":false,"verified":false,"statuses_count":3,"lang":"en","contributors_enabled":false,"is_translator":false,"is_translation_enabled":false,"profile_background_color":"C0DEED","profile_background_image_url":"http:\/\/abs.twimg.com\/images\/themes\/theme1\/bg.png","profile_background_image_url_https":"https:\/\/abs.twimg.com\/images\/themes\/theme1\/bg.png","profile_background_tile":false,"profile_image_url":"http:\/\/pbs.twimg.com\/profile_images\/2786879011\/82f55e4cdce96aff4ceb36f552961324_normal.png","profile_image_url_https":"https:\/\/pbs.twimg.com\/profile_images\/2786879011\/82f55e4cdce96aff4ceb36f552961324_normal.png","profile_link_color":"1DA1F2","profile_sidebar_border_color":"C0DEED","profile_sidebar_fill_color":"DDEEF6","profile_text_color":"333333","profile_use_background_image":true,"has_extended_profile":false,"default_profile":true,"default_profile_image":false,"following":false,"follow_request_sent":false,"notifications":false,"translator_type":"none"},"geo":null,"coordinates":null,"place":null,"contributors":null,"is_quote_status":false,"retweet_count":0,"favorite_count":0,"favorited":false,"retweeted":false,"lang":"en"}]'
+    http_version: 
+  recorded_at: Sun, 19 Nov 2017 20:08:55 GMT
+recorded_with: VCR 3.0.3

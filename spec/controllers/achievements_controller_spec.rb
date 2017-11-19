@@ -306,7 +306,7 @@ describe AchievementsController do
       let(:achievement_params) { {title: "some title", user: user} }
 
       it "instantiated new achievement" do
-        achievement = instance_double(Achievement, id: 1, save: true)
+        achievement = instance_double(Achievement, id: 1, save: false)
         allow(Achievement).to receive(:new) { achievement }
 
         expect(Achievement).to receive(:new).with(achievement_params)
@@ -332,13 +332,16 @@ describe AchievementsController do
         end
       end
 
-      context "valid input" do
+      context "valid input", :vcr do
         let(:achievement) { instance_double(Achievement, id: 1) }
-      
+        let(:tweet) { instance_double(TwitterService) }
+
         before do
           allow(Achievement).to receive(:new) { achievement }
           allow(achievement).to receive(:save) { true }
           allow(UserMailer).to receive_message_chain(:achievement_created, :deliver_now)
+          allow(achievement).to receive(:title) { "some title" }
+          allow(tweet).to receive(:tweet)
         end
 
         after(:each) do

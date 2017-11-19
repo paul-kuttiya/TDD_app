@@ -27,6 +27,8 @@ gem 'redcarpet', '~> 3.2.3'
 # user auth
 gem 'devise', '~> 3.4.1'
 
+gem 'twitter', '~> 5.15.0'
+
 group :development do
   gem 'web-console', '~> 2.0'
 end
@@ -51,4 +53,8 @@ group :test do
   gem 'cucumber-rails', '~> 1.4.2', require: false
   gem 'database_cleaner'
   gem 'shoulda-matchers', '~> 2.7.0', require: false
+
+  # record api
+  gem 'vcr', '3.0.3'
+  gem 'webmock'
 end

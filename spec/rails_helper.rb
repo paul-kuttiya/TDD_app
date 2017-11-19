@@ -8,9 +8,20 @@ require 'rspec/rails'
 require 'shoulda/matchers'
 require 'devise'
 require 'database_cleaner'
-# Add additional requires below this line. Rails is not loaded until this point!
+require 'webmock/rspec'
+require 'vcr'
 
 Dir[Rails.root.join("spec/support/**/*.rb")].each { |f| require f }
+
+VCR.configure do |c|
+  c.cassette_library_dir = 'spec/cassettes'
+  c.hook_into :webmock
+  c.configure_rspec_metadata!
+  c.ignore_localhost = true
+end
+
+# Add additional requires below this line. Rails is not loaded until this point!
+
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
