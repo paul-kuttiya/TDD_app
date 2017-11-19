@@ -295,7 +295,7 @@ describe AchievementsController do
   describe "authenticated user" do
     it_behaves_like "public access to achievements"
     
-    let(:user) { instance_double(User) }
+    let(:user) { instance_double(User, email: "test@email.com") }
     
     before do
       allow(controller).to receive(:authenticate_user!) { true }
@@ -306,9 +306,9 @@ describe AchievementsController do
       let(:achievement_params) { {title: "some title", user: user} }
 
       it "instantiated new achievement" do
-        achievement = instance_double(Achievement, save: true)
+        achievement = instance_double(Achievement, id: 1, save: true)
         allow(Achievement).to receive(:new) { achievement }
-        
+
         expect(Achievement).to receive(:new).with(achievement_params)
         post :create, achievement: achievement_params
       end
@@ -333,11 +333,16 @@ describe AchievementsController do
       end
 
       context "valid input" do
-        let(:achievement) { instance_double(Achievement) }
+        let(:achievement) { instance_double(Achievement, id: 1) }
       
         before do
           allow(Achievement).to receive(:new) { achievement }
           allow(achievement).to receive(:save) { true }
+          allow(UserMailer).to receive_message_chain(:achievement_created, :deliver_now)
+        end
+
+        after(:each) do
+          ActionMailer::Base.deliveries.clear
         end
 
         it "redirects to achievement page" do

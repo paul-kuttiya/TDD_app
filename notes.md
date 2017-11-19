@@ -26,6 +26,11 @@
   * [Test DB Queries][#test-db-queries]  
 * [Test in isolation](#test-in-isolation)  
   * [Test controller in isolation](#test-controller-in-isolation)  
+* [other tests](#other-tests)  
+  * [testing email](#testing-email)  
+    * [implement mailer in feature spec][#implement-mailer-in-feature-spec]  
+    * [create mailer and test](#create-mailer-and-test)  
+    *  
 
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
 
@@ -1840,4 +1845,162 @@ describe "authenticated user" do
 end
 ```
 
-## 
+## other tests  
+### testing email
+* rails testing environment will set to test, and can be access with `ActionMailer::Base.deliveries`  
+```ruby
+# config/environments/test.rb
+config.action_mailer.delivery_method = :test
+# access array with ActionMailer::Base.deliveries
+```
+
+#### Implement mailer in feature spec
+* implement feature spec to test for mailer  
+```ruby
+# create_achievement_spec
+feature 'create new achievement' do
+  # ...
+
+  scenario 'create new achievement with valid data' do
+    new_achievement_form.visit_page.fill_in_with.submit
+
+    expect(ActionMailer::Base.deliveries.count).to eq 1
+    expect(ActionMailer::Base.deliveries.last.to).to include(user.email)    
+    # ...
+  end
+end
+```
+
+#### create mailer and test  
+* create mailer, controller, view and test with `rails g mailer ModelMailer`  
+`rails g mailer UserMailer`  
+
+* define test for mailer  
+```ruby
+RSpec.describe UserMailer, type: :mailer do
+  it 'sends email when achievement is created to owner' do
+    # create ApplicationMailer email object
+    # .achievement_created is our custom action
+    # .deliver_now is rails method to deliver email
+    email = UserMailer.achievement_created('user@email.com').deliver_now
+
+    # .to is the method returns array of emails to mail to 
+    expect(email.to).to include('user@email.com')
+  end
+end
+```
+
+* implement `UserMailer` to pass the test  
+```ruby
+# user_mailer.rb
+class UserMailer < ApplicationMailer
+  def achievement_created(email)
+    # Mailer method to sent email
+    mail to: email
+  end
+end
+```
+
+* implement view in `views/model_mailer/action`   
+```ruby
+# views/user_mailer/achievement_created.html.haml  
+# some haml
+```
+
+* with working test, implement all the desired tests  
+```ruby
+require "rails_helper"
+
+RSpec.describe UserMailer, type: :mailer do
+  # include to ensure that rails url helper is working
+  include Rails.application.routes.url_helpers
+
+  # define achievement id for achievement_created
+  let(:achievement_id) { 1 }
+  let(:email) { UserMailer.achievement_created('user@email.com', achievement_id) }
+  
+  it 'sends email when achievement is created to owner' do
+    email.deliver_now
+    expect(email.to).to include('user@email.com')
+  end
+
+  it "has email subject" do
+    expect(email.subject).to eq("Achievement created!")
+  end
+
+  it "has link to achievement from email body" do
+    expect(email.body).to include(achievement_url(achievement_id))
+  end
+end
+```
+
+```ruby
+# user_mailer.rb
+class UserMailer < ApplicationMailer
+  def achievement_created(email, achievement_id)
+    # send id to view for email to link to show url
+    @achievement_id = achievement_id
+    mail(to: email, subject: "Achievement created!")
+  end
+end
+```
+
+```haml
+-# use achievement_url to get to the url itself
+-# helper achievement_path will go to show path which relative to app path, achievement_url will get to the url itself
+= link_to "your achievement", achievement_url(@achievement_id)
+```
+
+* the test still fails since we need to implement controller to send email 
+
+> Ideally sending email should be augmented with background processing jobs; eg: sidekiq
+
+```ruby
+def create
+  @achievement = Achievement.new(achievement_params.merge(user: current_user))
+
+  if @achievement.save
+    # send email if successfully save
+    UserMailer.achievement_created(current_user.email, @achievement.id).deliver_now
+    redirect_to achievement_path(@achievement), notice: "Achievement has been created" 
+  else
+    render :new
+  end
+end
+```
+
+* fix controller test by stubbing `Mailer` to make test pass
+```ruby
+describe "authenticated user" do
+  # other code...
+  # stub email for auth user
+  let(:user) { instance_double(User, email: "test@email.com") }
+
+  describe "POST create" do
+    # ...
+    it "instantiated new achievement" do
+      # stub id for acheivement double
+      achievement = instance_double(Achievement, id: 1, save: true)
+    end
+
+    context "valid input" do
+      let(:achievement) { instance_double(Achievement, id: 1) }
+
+      before do
+        #...
+        # stub UserMailer with chain message
+        allow(UserMailer).to receive_message_chain(:achievement_created, :deliver_now)
+      end
+
+      # clear email in Mailer array after tests 
+      after(:each) do
+        ActionMailer::Base.deliveries.clear
+      end
+
+      # tests ...
+    end
+  end
+end
+```
+
+* optionally use `gem letter_opener` to preview mail in browser, `gem email-spec` for `ActionMailer` test matchers
