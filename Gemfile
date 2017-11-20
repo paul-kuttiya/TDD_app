@@ -29,6 +29,9 @@ gem 'devise', '~> 3.4.1'
 
 gem 'twitter', '~> 5.15.0'
 
+# serialize json for response
+gem 'active_model_serializers'
+
 group :development do
   gem 'web-console', '~> 2.0'
 end

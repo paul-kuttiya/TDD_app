@@ -32,6 +32,9 @@
     * [create mailer and test](#create-mailer-and-test)  
   * [file upload and test](#file-upload-and-test)  
   * [Test third party api](test-third-party-api)  
+  * [Test our own api](test-our-own-api)  
+    * [Create spec and implement api](create-spec-and-implement-api)  
+    * [create response JSON](create response JSON)  
 
 > run `rspec` to test all, `rspec spec/path...` to test file, `rspec --format=documentation spec/path...` to test as documentation
 
@@ -2205,5 +2208,96 @@ describe TwitterService do
       expect(tweet.id).not_to be_nil
     end
   end
+end
+```
+
+### Test our own api  
+* Test our json api; Setup, API request with custom header then test json response  
+
+* generally test respose with return status and return  
+
+* use rails request spec to test json API  
+
+#### create spec and implement api 
+* create `spec/requests/api/achievements_spec.rb`
+```ruby
+describe "Achievements API" do
+  it "sends public achievements" do
+    # rails request method
+    # get 'url', data, header
+    get '/api/achievements'
+  end
+end
+```
+
+* implement routes  
+```ruby
+# routes
+# ...
+# group routes under specific names
+# controller will be under folder api/... namespace
+namespace :api do
+  # /api/...
+  resources :achievements, only: [:index]
+end
+```
+
+* implement controller  
+```ruby
+# app/controllers/api/achievements_controller.rb
+class Api::AchievementsController < ApiController
+  def index
+    render nothing: true
+  end
+end
+```
+
+* create parent class `ApiController` and inherit from `ActionController::Base`
+```ruby
+# controllers/api_controller.rb
+# create parent class for api namespace Controller 
+class ApiController < ActionController::Base
+  # Prevent CSRF attacks by raising an exception.
+  # For APIs, you may want to use :null_session instead.
+  protect_from_forgery with: :null_session
+end
+``` 
+
+* implement more test for Achievements Api
+```ruby
+# spec/requests/api/achievements_spec.rb
+describe "Achievements API" do
+  it "sends public achievements" do
+    public_achievement = FactoryGirl.create(:public_achievement, title: "JSON api")
+    private_achievement = FactoryGirl.create(:private_achievement)
+    
+    get '/api/achievements'
+
+    expect(response.status).to eq(200)
+    # build json object from response body
+    json = JSON.parse(response.body)
+
+    expect(json['data'].count).to eq 1
+    expect(json['data'][0]['type']).to eq "achievements"    
+    expect(json['data'][0]['attributes']['title']).to eq "JSON api"        
+  end
+end
+```
+
+#### create response JSON
+* implement in controller to return json when response back with `gem 'active_model_serializers'`   
+
+* config `config/initializers/active_model_serializers.rb`
+```ruby
+ActiveModel::Serializer.config.adapter = ActiveModel::Serializer::Adapter::JsonApi
+```
+
+* run `rails g serializer Model`; `rails g serializer Achievement`  
+
+* modify our serializer to return as specified  
+```ruby
+# app/serializers/achievement_serializer.rb
+class AchievementSerializer < ActiveModel::Serializer
+  attributes :id, :title
 end
 ```
