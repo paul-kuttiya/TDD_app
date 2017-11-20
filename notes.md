@@ -2301,3 +2301,16 @@ class AchievementSerializer < ActiveModel::Serializer
   attributes :id, :title
 end
 ```
+
+* implement the controller to return json as response  
+```ruby
+# api/achievements_controller.rb
+class Api::AchievementsController < ApiController
+  def index
+    # return only public achievement
+    achievements = Achievement.public_access
+
+    render json: achievements
+  end
+end
+```
